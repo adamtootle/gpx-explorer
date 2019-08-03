@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<gpx xmlns="http://www.topografix.com/GPX/1/1" creator="GaiaGPS" version="1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <trk>
+    <name>Track (7/27/19, 12:31:03AM)</name>
+    <trkseg>
+      <trkpt lat="35.168796" lon="-85.233806">
+        <ele>227.8</ele>
+        <time>2019-07-27T04:31:03Z</time>
+      </trkpt>
+      <trkpt lat="35.168771" lon="-85.233685">
+        <ele>232.5</ele>
+        <time>2019-07-27T04:31:08Z</time>
+      </trkpt>
+      <trkpt lat="35.168769" lon="-85.233718">
+        <ele>231.8</ele>
+        <time>2019-07-27T04:31:30Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>
