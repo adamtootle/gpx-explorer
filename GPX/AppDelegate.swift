@@ -41,6 +41,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     }
 
-
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+        NotificationCenter.default.post(name: .openGPX, object: nil, userInfo: ["url":url])
+        return true
+    }
 }
 

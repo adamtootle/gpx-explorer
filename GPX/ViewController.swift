@@ -7,9 +7,9 @@
 //
 
 import UIKit
-import SWXMLHash
 import Photos
 import MapKit
+import MobileCoreServices
 
 extension MKMapView {
     var zoomLevel: Double {
@@ -17,13 +17,14 @@ extension MKMapView {
     }
 }
 
-class ViewController: UIViewController, MKMapViewDelegate, UIGestureRecognizerDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+class ViewController: UIViewController, MKMapViewDelegate, UIGestureRecognizerDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UIDocumentPickerDelegate {
     @IBOutlet var mapView: MKMapView!
     @IBOutlet var collectionView: UICollectionView!
     @IBOutlet var containerView: UIView!
     @IBOutlet var containerInnerView: UIView!
     @IBOutlet var buttonsView: UIView!
     @IBOutlet var photosView: UIView!
+    @IBOutlet var openFileView: UIView!
     @IBOutlet var dragView: UIView!
     @IBOutlet var dragViewMarker: UIView!
     
@@ -40,6 +41,12 @@ class ViewController: UIViewController, MKMapViewDelegate, UIGestureRecognizerDe
     let containerViewExpandedHeight = (UIScreen.main.bounds.size.height / 2) - 15
     var containerViewCollapsedY: CGFloat = 0
     let containerViewExpandedY: CGFloat = UIScreen.main.bounds.size.height / 2
+    
+    override func awakeFromNib() {
+        super.awakeFromNib()
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(openGPX(_:)), name: .openGPX, object: nil)
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -48,7 +55,7 @@ class ViewController: UIViewController, MKMapViewDelegate, UIGestureRecognizerDe
         PHPhotoLibrary.requestAuthorization { (status) in
             if status == .authorized {
                 DispatchQueue.main.async {
-                    self.loadGPX()
+//                    self.loadGPX()
                 }
             }
         }
@@ -73,6 +80,37 @@ class ViewController: UIViewController, MKMapViewDelegate, UIGestureRecognizerDe
         super.viewDidAppear(animated)
         
         self.containerViewCollapsedY = self.containerView.frame.origin.y
+    }
+    
+    @objc func openGPX(_ notification: Notification) {
+        self.openFileView.alpha = 0.0
+        if let url = notification.userInfo?["url"] as? URL {
+            let gpxResponse: (startDate: Date?, endDate: Date?, polylines: [MKPolyline]) = GPXService.processGPX(path: url.path)
+            self.renderPolylines(gpxResponse.polylines)
+            self.loadImages(startDate: gpxResponse.startDate, endDate: gpxResponse.endDate)
+        }
+    }
+    
+    func renderPolylines(_ polylines: [MKPolyline]) {
+        self.mapView.removeOverlays(self.mapView.overlays)
+        polylines.forEach { (polyline) in
+            self.mapView.addOverlay(polyline)
+        }
+        
+        if let lastPolyline = polylines.last {
+            self.polyline = lastPolyline
+            
+            self.mapView.setVisibleMapRect(
+                lastPolyline.boundingMapRect,
+                edgePadding: UIEdgeInsets(
+                    top: 20,
+                    left: 20,
+                    bottom: 20 + self.containerViewCollapsedHeight,
+                    right: 20
+                ),
+                animated: true
+            )
+        }
     }
 }
 
@@ -112,6 +150,12 @@ extension ViewController {
         }
         
         self.collectionView.collectionViewLayout.invalidateLayout()
+        
+        if self.images.count == 0 {
+            self.collectionView.isScrollEnabled = false
+        } else {
+            self.collectionView.isScrollEnabled = true
+        }
     }
     
     func hidePhotos() {
@@ -148,12 +192,29 @@ extension ViewController {
 
 // MARK: IBActions
 extension ViewController {
+    @IBAction func didTapOpenFileButton() {
+        let types: [String] = [kUTTypeXML as String]
+        let documentPicker = UIDocumentPickerViewController(documentTypes: types, in: .import)
+        documentPicker.delegate = self
+        documentPicker.modalPresentationStyle = .formSheet
+        self.present(documentPicker, animated: true, completion: nil)
+    }
+    
     @IBAction func didTapPhotosButton() {
         self.showPhotos()
     }
     
     @IBAction func didTapCameraButton() {
         
+    }
+    
+    @IBAction func didTapCloseButton() {
+        self.mapView.removeOverlays(self.mapView.overlays)
+        UIView.animate(withDuration: 0.3) {
+            self.openFileView.alpha = 1.0
+        }
+        let resetRegion = MKCoordinateRegion(center: self.mapView.centerCoordinate, span: MKCoordinateSpan(latitudeDelta: 180, longitudeDelta: 360))
+        self.mapView.setRegion(resetRegion, animated: true)
     }
     
     @IBAction func handlePan(recognizer: UIPanGestureRecognizer) {
@@ -214,62 +275,6 @@ extension ViewController {
 }
 
 extension ViewController {
-    func loadGPX() {
-        var places: [MKMapPoint] = []
-        var startDate: Date?
-        var endDate: Date?
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
-        dateFormatter.timeZone = TimeZone(abbreviation: "UTC")
-        if let filepath = Bundle.main.path(forResource: "track", ofType: "gpx") {
-            do {
-                let contents = try String(contentsOfFile: filepath)
-                let xml = SWXMLHash.parse(contents)
-                xml["gpx"]["trk"]["trkseg"].all.forEach { (trkseg) in
-                    trkseg["trkpt"].all.forEach({ (trkpt) in
-                        if let latText = trkpt.element?.attribute(by: "lat")?.text,
-                            let lonText = trkpt.element?.attribute(by: "lon")?.text,
-                            let timeText = trkpt["time"].element?.text {
-                            let lat = Double(latText)!
-                            let lon = Double(lonText)!
-                            places.append(MKMapPoint(CLLocationCoordinate2D(latitude: lat, longitude: lon)))
-                            
-                            let time = dateFormatter.date(from: timeText)!
-                            
-                            if startDate == nil {
-                                startDate = time
-                            }
-                            
-                            endDate = time
-                        }
-                        
-                    })
-                }
-            } catch {
-                // contents could not be loaded
-            }
-        } else {
-            // example.txt not found!
-        }
-        
-        var locations = places.map { $0.coordinate }
-        let polyline = MKPolyline(coordinates: &locations, count: locations.count)
-        self.polyline = polyline
-        self.mapView.addOverlay(self.polyline!)
-        self.mapView.setVisibleMapRect(
-            self.polyline!.boundingMapRect,
-            edgePadding: UIEdgeInsets(
-                top: 20,
-                left: 20,
-                bottom: 20 + self.containerViewCollapsedHeight,
-                right: 20
-            ),
-            animated: false
-        )
-        
-        self.loadImages(startDate: startDate, endDate: endDate)
-    }
-    
     func loadImages(startDate: Date?, endDate: Date?) {
         guard let startDate = startDate, let endDate = endDate else { return }
         
@@ -335,10 +340,14 @@ extension ViewController {
 extension ViewController {
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
+        if self.images.count == 0 {
+            let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CollectionViewLabelCell", for: indexPath) as! CollectionViewLabelCell
+            cell.text = "No photos found"
+            return cell
+        }
+        
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "CollectionViewImageCell", for: indexPath) as! CollectionViewImageCell
-        
         cell.image = self.images[indexPath.item].image
-        
         return cell
     }
     
@@ -347,13 +356,21 @@ extension ViewController {
     }
     
     func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        if images.count == 0 {
+            return 1
+        }
+        
         return self.images.count
     }
     
     func collectionView(_ collectionView: UICollectionView,
                         layout collectionViewLayout: UICollectionViewLayout,
                         sizeForItemAt indexPath: IndexPath) -> CGSize {
-        let width = (self.containerView.frame.size.width - 3.0) / 3.0
+        if self.images.count == 0 {
+            return CGSize(width: self.collectionView.frame.size.width - 2, height: self.collectionView.frame.size.height - 2)
+        }
+        
+        let width = (self.collectionView.frame.size.width - 3.0) / 3.0
         return CGSize(width: width, height: width)
     }
     
@@ -366,6 +383,8 @@ extension ViewController {
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
+        guard self.images.count > 1 else { return }
+        
         self.mapView.removeAnnotations(self.mapView.annotations)
         
         if let location = self.images[indexPath.item].asset.location {
@@ -376,11 +395,11 @@ extension ViewController {
     }
 }
 
-class CollectionViewImageCell: UICollectionViewCell {
-    @IBOutlet var imageView: UIImageView!
-    var image: UIImage? {
-        didSet {
-            self.imageView.image = image
+// MARK: UIDocumentPickerDelegate
+extension ViewController {
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        if let url = urls.first {
+            NotificationCenter.default.post(name: .openGPX, object: nil, userInfo: ["url":url])
         }
     }
 }
