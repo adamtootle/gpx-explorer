@@ -39,8 +39,8 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate, UICollectio
     let containerViewExpandedHeight = (UIScreen.main.bounds.size.height / 2) - 15
     var containerViewCollapsedY: CGFloat = 0
     let containerViewExpandedY: CGFloat = UIScreen.main.bounds.size.height / 2
-    
     var gpxResponse: GPXServiceResponse?
+    var feedbackGenerator: UISelectionFeedbackGenerator?
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -93,6 +93,9 @@ class ViewController: UIViewController, UIGestureRecognizerDelegate, UICollectio
         self.arMapCloseButtonViewTopConstraint.constant = self.view.safeAreaInsets.top + 20
         self.view.setNeedsUpdateConstraints()
         self.view.layoutIfNeeded()
+        
+        self.feedbackGenerator = UISelectionFeedbackGenerator()
+        self.feedbackGenerator?.prepare()
     }
     
     @objc func openGPX(_ notification: Notification) {
@@ -256,17 +259,19 @@ extension ViewController {
         documentPicker.delegate = self
         documentPicker.modalPresentationStyle = .formSheet
         self.present(documentPicker, animated: true, completion: nil)
+        self.feedbackGenerator?.selectionChanged()
     }
     
     @IBAction func didTapPhotosButton() {
         self.showPhotos()
+        self.feedbackGenerator?.selectionChanged()
     }
     
     @IBAction func didTapCameraButton() {
         if let gpxResponse = self.gpxResponse {
             self.showARMap()
-            
             self.arMapView.renderScene(gpxResponse: gpxResponse)
+            self.feedbackGenerator?.selectionChanged()
         }
     }
     
@@ -276,6 +281,7 @@ extension ViewController {
         }
         self.mapView.removeOverlays(self.mapView.overlays)
         self.mapView.setZoomLevel(0, animated: true)
+        self.feedbackGenerator?.selectionChanged()
     }
     
     @IBAction func handlePan(recognizer: UIPanGestureRecognizer) {
@@ -330,6 +336,7 @@ extension ViewController {
     
     @IBAction func didTapCloseARButton() {
         self.hideARMapView()
+        self.feedbackGenerator?.selectionChanged()
     }
 }
 
