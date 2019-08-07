@@ -8,19 +8,12 @@
 
 import UIKit
 import Photos
-import MapKit
 import MobileCoreServices
 import Mapbox
+import GEOSwift
 
-extension MKMapView {
-    var zoomLevel: Double {
-        return log2(360 * ((Double(self.frame.size.width) / 256) / self.region.span.longitudeDelta)) - 1
-    }
-}
-
-class ViewController: UIViewController, MKMapViewDelegate, UIGestureRecognizerDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UIDocumentPickerDelegate, MGLMapViewDelegate {
-    @IBOutlet var mapView: MKMapView!
-    @IBOutlet var mglMapView: MGLMapView!
+class ViewController: UIViewController, UIGestureRecognizerDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UIDocumentPickerDelegate, MGLMapViewDelegate {
+    @IBOutlet var mapView: MGLMapView!
     @IBOutlet var collectionView: UICollectionView!
     @IBOutlet var containerView: UIView!
     @IBOutlet var containerInnerView: UIView!
@@ -30,15 +23,17 @@ class ViewController: UIViewController, MKMapViewDelegate, UIGestureRecognizerDe
     @IBOutlet var arMapView: ARMapView!
     @IBOutlet var dragView: UIView!
     @IBOutlet var dragViewMarker: UIView!
+    @IBOutlet var arMapCloseButtonView: UIView!
+    @IBOutlet var arMapCloseButton: HighlightButton!
     
     @IBOutlet var containerViewLeadingConstraint: NSLayoutConstraint!
     @IBOutlet var containerViewTrailingConstraint: NSLayoutConstraint!
     @IBOutlet var containerViewHeightConstraint: NSLayoutConstraint!
     @IBOutlet var containerViewBottomConstraint: NSLayoutConstraint!
     @IBOutlet var photosViewBottomConstraint: NSLayoutConstraint!
+    @IBOutlet var arMapCloseButtonViewTopConstraint: NSLayoutConstraint!
     
     var images: [(image: UIImage, asset: PHAsset)] = []
-    var polyline: MKPolyline?
     
     let containerViewCollapsedHeight: CGFloat = 80.0
     let containerViewExpandedHeight = (UIScreen.main.bounds.size.height / 2) - 15
@@ -65,68 +60,81 @@ class ViewController: UIViewController, MKMapViewDelegate, UIGestureRecognizerDe
             }
         }
         
-        containerView.layer.cornerRadius = 15
-        containerView.layer.shadowColor = UIColor.black.cgColor
-        containerView.layer.shadowOffset = CGSize(width: 0, height: 0)
-        containerView.layer.shadowOpacity = 0.25
-        containerView.layer.shadowRadius = 7
+        self.containerView.layer.cornerRadius = 15
+        self.containerView.layer.shadowColor = UIColor.black.cgColor
+        self.containerView.layer.shadowOffset = CGSize(width: 0, height: 0)
+        self.containerView.layer.shadowOpacity = 0.25
+        self.containerView.layer.shadowRadius = 7
         
-        // shadow
-        containerInnerView.layer.cornerRadius = 15
-        containerInnerView.clipsToBounds = true
+        self.containerInnerView.layer.cornerRadius = 15
+        self.containerInnerView.clipsToBounds = true
+        
+        self.arMapCloseButtonView.layer.cornerRadius = 21
+        self.arMapCloseButtonView.layer.shadowColor = UIColor.black.cgColor
+        self.arMapCloseButtonView.layer.shadowOffset = CGSize(width: 0, height: 0)
+        self.arMapCloseButtonView.layer.shadowOpacity = 0.25
+        self.arMapCloseButtonView.layer.shadowRadius = 7
+        
+        self.arMapCloseButton.layer.cornerRadius = 21
+        self.arMapCloseButton.clipsToBounds = true
         
         self.photosView.layer.cornerRadius = 16
         self.photosView.clipsToBounds = true
         
         self.dragViewMarker.layer.cornerRadius = self.dragViewMarker.bounds.size.height / 2
         
-        self.mglMapView.styleURL = URL(string: "mapbox://styles/adamtootle/cjyzd3ygk0c491cmo0309nr1p")!
+        self.mapView.styleURL = URL(string: "mapbox://styles/adamtootle/cjyzd3ygk0c491cmo0309nr1p")!
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         
         self.containerViewCollapsedY = self.containerView.frame.origin.y
+        self.arMapCloseButtonViewTopConstraint.constant = self.view.safeAreaInsets.top + 20
+        self.view.setNeedsUpdateConstraints()
+        self.view.layoutIfNeeded()
     }
     
     @objc func openGPX(_ notification: Notification) {
         self.openFileView.alpha = 0.0
         if let url = notification.userInfo?["url"] as? URL {
             self.gpxResponse = GPXService.processGPX(path: url.path)
-            self.renderPolylines(self.gpxResponse!.createPolylines())
+            self.renderPolylines()
             self.loadImages(startDate: self.gpxResponse?.startDate, endDate: self.gpxResponse?.endDate)
         }
     }
     
-    func renderPolylines(_ polylines: [MKPolyline]) {
+    func renderPolylines() {
         self.mapView.removeOverlays(self.mapView.overlays)
-        polylines.forEach { (polyline) in
-            self.mapView.addOverlay(polyline)
-        }
         
-        if let lastPolyline = polylines.last {
-            self.polyline = lastPolyline
-            
-            self.mapView.setVisibleMapRect(
-                lastPolyline.boundingMapRect,
-                edgePadding: UIEdgeInsets(
-                    top: 20,
-                    left: 20,
-                    bottom: 20 + self.containerViewCollapsedHeight,
-                    right: 20
-                ),
-                animated: true
-            )
-        }
+        guard let gpxResponse = self.gpxResponse else { return }
         
         var mglPolylines: [MGLPolyline] = []
-        for locationsArray in self.gpxResponse!.locations! {
+        for locationsArray in gpxResponse.locations {
             let polyline = MGLPolyline(coordinates: locationsArray.map{$0.coordinate}, count: UInt(locationsArray.count))
             mglPolylines.append(polyline)
-            self.mglMapView.addAnnotation(polyline)
+            self.mapView.addAnnotation(polyline)
         }
         
-        self.mglMapView.showAnnotations(mglPolylines, animated: true)
+        self.mapView.showAnnotations(
+            mglPolylines,
+            edgePadding: UIEdgeInsets(
+                top: 20,
+                left: 20,
+                bottom: 20,
+                right: 20
+            ),
+            animated: true,
+            completionHandler: nil
+        )
+        
+        self.mapView.setVisibleCoordinateBounds(
+            MGLCoordinateBounds(
+                sw: gpxResponse.southwestCoordinate,
+                ne: gpxResponse.northeastCoordinate
+            ),
+            animated: true
+        )
     }
 }
 
@@ -146,23 +154,16 @@ extension ViewController {
             self.dragView.alpha = 1.0
         }
         
-        if let polyline = self.polyline {
-            // Weirdly, running setVisibleMapRect here normally
-            // does this weird UI lock the very first time, running
-            // as expected every time after that.
-            // Delaying it for 1 millisecond runs as expected.
-            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + .milliseconds(1)) {
-                self.mapView.setVisibleMapRect(
-                    polyline.boundingMapRect,
-                    edgePadding: UIEdgeInsets(
-                        top: 20,
-                        left: 20,
-                        bottom: self.containerViewExpandedY,
-                        right: 20
-                    ),
-                    animated: true
-                )
-            }
+        if let annotations = self.mapView.annotations {
+            self.mapView.showAnnotations(
+                annotations,
+                edgePadding: UIEdgeInsets(
+                    top: 20,
+                    left: 20,
+                    bottom: self.containerViewExpandedY,
+                    right: 20
+                ),
+                animated: true, completionHandler: nil)
         }
         
         self.collectionView.collectionViewLayout.invalidateLayout()
@@ -189,27 +190,24 @@ extension ViewController {
             self.dragView.alpha = 0.0
         }
         
-        if let polyline = self.polyline {
-            self.mapView.setVisibleMapRect(
-                polyline.boundingMapRect,
+        if let annotations = self.mapView.annotations {
+            self.mapView.showAnnotations(
+                annotations,
                 edgePadding: UIEdgeInsets(
                     top: 20,
-                    left: 100,
-                    bottom: 20,
-                    right: 100
+                    left: 20,
+                    bottom: 20 + self.containerViewCollapsedHeight,
+                    right: 20
                 ),
-                animated: true
-            )
+                animated: true, completionHandler: nil)
         }
-        
-        self.mapView.removeAnnotations(self.mapView.annotations)
     }
     
     func showARMap() {
         self.containerViewLeadingConstraint.constant = 0
         self.containerViewTrailingConstraint.constant = 0
         self.containerViewBottomConstraint.constant = (self.view.safeAreaInsets.bottom * -1) - 15
-        self.containerViewHeightConstraint.constant = UIScreen.main.bounds.size.height
+        self.containerViewHeightConstraint.constant = UIScreen.main.bounds.size.height + 30
         
         self.view.setNeedsUpdateConstraints()
         
@@ -219,25 +217,7 @@ extension ViewController {
             self.photosView.alpha = 0.0
             self.dragView.alpha = 0.0
             self.arMapView.alpha = 1.0
-        }
-        
-        if let polyline = self.polyline {
-            // Weirdly, running setVisibleMapRect here normally
-            // does this weird UI lock the very first time, running
-            // as expected every time after that.
-            // Delaying it for 1 millisecond runs as expected.
-            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + .milliseconds(1)) {
-                self.mapView.setVisibleMapRect(
-                    polyline.boundingMapRect,
-                    edgePadding: UIEdgeInsets(
-                        top: 20,
-                        left: 20,
-                        bottom: self.containerViewExpandedY,
-                        right: 20
-                    ),
-                    animated: true
-                )
-            }
+            self.arMapCloseButtonView.alpha = 1.0
         }
         
         self.collectionView.collectionViewLayout.invalidateLayout()
@@ -263,22 +243,8 @@ extension ViewController {
             self.photosView.alpha = 0.0
             self.dragView.alpha = 0.0
             self.arMapView.alpha = 0.0
+            self.arMapCloseButtonView.alpha = 0.0
         }
-        
-        if let polyline = self.polyline {
-            self.mapView.setVisibleMapRect(
-                polyline.boundingMapRect,
-                edgePadding: UIEdgeInsets(
-                    top: 20,
-                    left: 20,
-                    bottom: 20 + self.containerViewCollapsedHeight,
-                    right: 20
-                ),
-                animated: true
-            )
-        }
-        
-        self.mapView.removeAnnotations(self.mapView.annotations)
     }
 }
 
@@ -297,25 +263,19 @@ extension ViewController {
     }
     
     @IBAction func didTapCameraButton() {
-        self.showARMap()
-        let coordinateBounds = self.mglMapView.visibleCoordinateBounds
-        
         if let gpxResponse = self.gpxResponse {
-            self.arMapView.renderScene(
-                northeastCoordinate: coordinateBounds.ne.locationWithBearing(bearing: .pi * 1.5, distanceMeters: 2000),
-                southwestCoordinate: coordinateBounds.sw,
-                gpxResponse: gpxResponse
-            )
+            self.showARMap()
+            
+            self.arMapView.renderScene(gpxResponse: gpxResponse)
         }
     }
     
     @IBAction func didTapCloseButton() {
-        self.mapView.removeOverlays(self.mapView.overlays)
         UIView.animate(withDuration: 0.3) {
             self.openFileView.alpha = 1.0
         }
-        let resetRegion = MKCoordinateRegion(center: self.mapView.centerCoordinate, span: MKCoordinateSpan(latitudeDelta: 180, longitudeDelta: 360))
-        self.mapView.setRegion(resetRegion, animated: true)
+        self.mapView.removeOverlays(self.mapView.overlays)
+        self.mapView.setZoomLevel(0, animated: true)
     }
     
     @IBAction func handlePan(recognizer: UIPanGestureRecognizer) {
@@ -344,17 +304,16 @@ extension ViewController {
             self.photosView.alpha = 1 - (1 * pullProgress)
             self.dragView.alpha = 1 - (1 * pullProgress)
             
-            if let polyline = self.polyline {
-                self.mapView.setVisibleMapRect(
-                    polyline.boundingMapRect,
+            if let annotations = self.mapView.annotations {
+                self.mapView.showAnnotations(
+                    annotations,
                     edgePadding: UIEdgeInsets(
                         top: 20,
                         left: 20,
                         bottom: containerViewHeight,
                         right: 20
                     ),
-                    animated: false
-                )
+                    animated: true, completionHandler: nil)
             }
             
             self.collectionView.collectionViewLayout.invalidateLayout()
@@ -367,6 +326,10 @@ extension ViewController {
                 self.showPhotos()
             }
         }
+    }
+    
+    @IBAction func didTapCloseARButton() {
+        self.hideARMapView()
     }
 }
 
@@ -382,27 +345,6 @@ extension ViewController {
             self.images = images
             self.collectionView.reloadData()
         })
-    }
-}
-
-// MARK: MKMapViewDelegate
-extension ViewController {
-    func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {
-        if overlay is MKCircle {
-            let renderer = MKCircleRenderer(overlay: overlay)
-            renderer.fillColor = UIColor.black.withAlphaComponent(0.5)
-            renderer.strokeColor = UIColor.blue
-            renderer.lineWidth = 2
-            return renderer
-            
-        } else if overlay is MKPolyline {
-            let renderer = MKPolylineRenderer(overlay: overlay)
-            renderer.strokeColor = UIColor.orange
-            renderer.lineWidth = 3
-            return renderer
-        }
-        
-        return MKOverlayRenderer()
     }
 }
 
@@ -453,15 +395,7 @@ extension ViewController {
     }
     
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        guard self.images.count > 1 else { return }
-        
-        self.mapView.removeAnnotations(self.mapView.annotations)
-        
-        if let location = self.images[indexPath.item].asset.location {
-            let annotation = MKPointAnnotation()
-            annotation.coordinate = location.coordinate
-            self.mapView.addAnnotation(annotation)
-        }
+        guard self.images.count > 0 else { return }
     }
 }
 

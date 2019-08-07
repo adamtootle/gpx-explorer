@@ -30,12 +30,12 @@ class ARMapView: UIView, ARSCNViewDelegate, ARSessionDelegate {
     var trackpoints:[CLLocationCoordinate2D]?
     let cameraNode = SCNNode()
     
-    func renderScene(northeastCoordinate: CLLocationCoordinate2D, southwestCoordinate: CLLocationCoordinate2D, gpxResponse: GPXServiceResponse) {
-        self.maxLat = northeastCoordinate.latitude
-        self.maxLon = northeastCoordinate.longitude
+    func renderScene(gpxResponse: GPXServiceResponse) {
+        self.maxLat = gpxResponse.northeastCoordinate.latitude
+        self.maxLon = gpxResponse.northeastCoordinate.longitude
         
-        self.minLat = southwestCoordinate.latitude
-        self.minLon = southwestCoordinate.longitude
+        self.minLat = gpxResponse.southwestCoordinate.latitude
+        self.minLon = gpxResponse.southwestCoordinate.longitude
         
         // Start the view's AR session with a configuration that uses the rear camera,
         // device position and orientation tracking, and plane detection.
@@ -56,10 +56,8 @@ class ARMapView: UIView, ARSCNViewDelegate, ARSessionDelegate {
         
         setupSceneView()
         createTerrain {
-            if let locations = gpxResponse.locations {
-                for locationsArray in locations {
-                    self.terrainNode?.addPolyline(coordinates: locationsArray, radius: 5.0, color: .red)
-                }
+            for locationsArray in gpxResponse.locations {
+                self.terrainNode?.addPolyline(coordinates: locationsArray, radius: 3.0, color: .blue)
             }
         }
     }
@@ -81,7 +79,7 @@ class ARMapView: UIView, ARSCNViewDelegate, ARSessionDelegate {
             terrainNode.geometry?.materials = defaultMaterials()
             self.sceneView.scene.rootNode.addChildNode(terrainNode)
             
-            terrainNode.position = SCNVector3(0, 0, 0)
+            terrainNode.position = SCNVector3(0, -0.3, -0.3)
             
             let finishLoadingTerrainAndTexture: (UIImage) -> Void = { image in
                 terrainNode.geometry?.materials[4].diffuse.contents = image
@@ -94,7 +92,10 @@ class ARMapView: UIView, ARSCNViewDelegate, ARSessionDelegate {
                 multiplier: 1.0,
                 enableDynamicShadows: true,
                 textureStyle: "adamtootle/cjyzd3ygk0c491cmo0309nr1p",
-                heightProgress: nil,
+                heightProgress: { (progress, total) in
+                    print("heightProgress \(progress) \(total)")
+                
+            },
                 heightCompletion: { (error) in
                     
                 },
@@ -105,6 +106,10 @@ class ARMapView: UIView, ARSCNViewDelegate, ARSessionDelegate {
                     if let textureImage = textureImage {
                         finishLoadingTerrainAndTexture(textureImage)
                     }
+                    
+//                    self.terrainNode?.childNodes.forEach({ (node) in
+//                        node.position = SCNVector3(-5, -5, -5)
+//                    })
                 })
         }
     }

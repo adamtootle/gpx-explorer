@@ -1,4 +1,7 @@
 PODS:
+  - geos (4.0.2)
+  - GEOSwift (5.0.0):
+    - geos (= 4.0.2)
   - Mapbox-iOS-SDK (5.2.0)
   - MapboxMobileEvents (0.9.5)
   - MapboxSceneKit (0.1.0):
@@ -6,6 +9,7 @@ PODS:
   - SWXMLHash (4.9.0)
 
 DEPENDENCIES:
+  - GEOSwift
   - Mapbox-iOS-SDK (~> 5.2)
   - MapboxMobileEvents
   - MapboxSceneKit (from `https://github.com/mapbox/mapbox-scenekit.git`)
@@ -13,6 +17,8 @@ DEPENDENCIES:
 
 SPEC REPOS:
   https://github.com/cocoapods/specs.git:
+    - geos
+    - GEOSwift
     - Mapbox-iOS-SDK
     - MapboxMobileEvents
     - SWXMLHash
@@ -27,11 +33,13 @@ CHECKOUT OPTIONS:
     :git: https://github.com/mapbox/mapbox-scenekit.git
 
 SPEC CHECKSUMS:
+  geos: ee2ae833c7b3c881a33de35a3cea18bf3e0cf7bc
+  GEOSwift: 36a5ee6814414a7962c558a352705ef34f27e303
   Mapbox-iOS-SDK: 3e095b305126d52ba166fe215d847b15b6fbee63
   MapboxMobileEvents: f6c21b2e59066c5c7093585de7c15adae3b63da0
   MapboxSceneKit: f51dd12b4e82735e4571e394841ca42bcac7990f
   SWXMLHash: 87b0006848a548b7f9485b40bc71721b3ae39add
 
-PODFILE CHECKSUM: 32ac2ebac7265ea73bc4dd199765feca0ba8c0d0
+PODFILE CHECKSUM: fc3810db66d37fdd053ed26278387b0bf69082b2
 
 COCOAPODS: 1.7.1

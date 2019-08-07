@@ -7,32 +7,37 @@
 //
 
 import Foundation
-import MapKit
 import SWXMLHash
+import CoreLocation
+import GEOSwift
 
-struct GPXServiceResponse {
-    let startDate: Date?
-    let endDate: Date?
-    let locations: [[CLLocation]]?
+class GPXServiceResponse {
+    var startDate: Date?
+    var endDate: Date?
+    var locations: [[CLLocation]]
+    var northeastCoordinate = CLLocationCoordinate2D(latitude: 0, longitude: 0)
+    var southwestCoordinate = CLLocationCoordinate2D(latitude: 0, longitude: 0)
     
-    func createPolylines() -> [MKPolyline] {
-        var polylines: [MKPolyline] = []
+    init(startDate: Date?, endDate: Date?, locations: [[CLLocation]]) {
+        self.startDate = startDate
+        self.endDate = endDate
+        self.locations = locations
         
-        if let locations = self.locations {
-            for locationsArray in locations {
-                var mapPoints: [MKMapPoint] = []
-                
-                for location in locationsArray {
-                    let mapPoint = MKMapPoint(location.coordinate)
-                    mapPoints.append(mapPoint)
-                }
-                
-                let polyline = MKPolyline(points: &mapPoints, count: mapPoints.count)
-                polylines.append(polyline)
-            }
+        self.calculateCorners()
+    }
+    
+    func calculateCorners() {
+        var envelope: Envelope?
+        if let locations = self.locations.first {
+            let lineString = try! LineString(points: locations.map{Point(x: $0.coordinate.latitude, y: $0.coordinate.longitude)})
+            let geometry = try! (try! lineString.envelope()).buffer(by: 0.001)
+            envelope = try! geometry.envelope()
         }
         
-        return polylines
+        if let envelope = envelope {
+            self.northeastCoordinate = CLLocationCoordinate2D(latitude: envelope.maxX, longitude: envelope.maxY)
+            self.southwestCoordinate = CLLocationCoordinate2D(latitude: envelope.minX, longitude: envelope.minY)
+        }
     }
 }
 

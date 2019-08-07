@@ -11,6 +11,7 @@ target 'GPX' do
   pod 'Mapbox-iOS-SDK', '~> 5.2'
   pod 'MapboxSceneKit', :git => 'https://github.com/mapbox/mapbox-scenekit.git'
   pod 'MapboxMobileEvents'
+  pod 'GEOSwift'
 
   target 'GPXTests' do
     inherit! :search_paths
