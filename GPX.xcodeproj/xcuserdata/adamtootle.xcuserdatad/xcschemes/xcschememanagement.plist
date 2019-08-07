@@ -7,7 +7,25 @@
 		<key>GPX.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
-			<integer>4</integer>
+			<integer>7</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>DBEF80DA22EBCBE7004B006F</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>DBEF80EE22EBCBE8004B006F</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>DBEF80F922EBCBE8004B006F</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>

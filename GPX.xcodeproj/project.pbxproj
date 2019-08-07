@@ -15,7 +15,10 @@
 		DB4AE9B122F5C65B0052AE44 /* CollectionViewImageCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB4AE9B022F5C65B0052AE44 /* CollectionViewImageCell.swift */; };
 		DB4AE9B322F5C66E0052AE44 /* CollectionViewLabelCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB4AE9B222F5C66E0052AE44 /* CollectionViewLabelCell.swift */; };
 		DB4AE9B522F5CBC00052AE44 /* HighlightButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB4AE9B422F5CBC00052AE44 /* HighlightButton.swift */; };
+		DB618EF922F74DF20081C6E4 /* PhotosService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB618EF822F74DF20081C6E4 /* PhotosService.swift */; };
+		DB618EFC22F758700081C6E4 /* ARMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB618EFB22F758700081C6E4 /* ARMapView.swift */; };
 		DBCBD7F222EC0B5600406535 /* track2.gpx in Resources */ = {isa = PBXBuildFile; fileRef = DBCBD7F122EC0B5600406535 /* track2.gpx */; };
+		DBE41F7C22FA55830022DA00 /* CLLocationCoordinate2D.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBE41F7B22FA55830022DA00 /* CLLocationCoordinate2D.swift */; };
 		DBEF80DF22EBCBE7004B006F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBEF80DE22EBCBE7004B006F /* AppDelegate.swift */; };
 		DBEF80E122EBCBE7004B006F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBEF80E022EBCBE7004B006F /* ViewController.swift */; };
 		DBEF80E422EBCBE7004B006F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = DBEF80E222EBCBE7004B006F /* Main.storyboard */; };
@@ -56,7 +59,10 @@
 		DB4AE9B022F5C65B0052AE44 /* CollectionViewImageCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionViewImageCell.swift; sourceTree = "<group>"; };
 		DB4AE9B222F5C66E0052AE44 /* CollectionViewLabelCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollectionViewLabelCell.swift; sourceTree = "<group>"; };
 		DB4AE9B422F5CBC00052AE44 /* HighlightButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HighlightButton.swift; sourceTree = "<group>"; };
+		DB618EF822F74DF20081C6E4 /* PhotosService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotosService.swift; sourceTree = "<group>"; };
+		DB618EFB22F758700081C6E4 /* ARMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARMapView.swift; sourceTree = "<group>"; };
 		DBCBD7F122EC0B5600406535 /* track2.gpx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = track2.gpx; sourceTree = "<group>"; };
+		DBE41F7B22FA55830022DA00 /* CLLocationCoordinate2D.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CLLocationCoordinate2D.swift; sourceTree = "<group>"; };
 		DBEF80DB22EBCBE7004B006F /* GPX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GPX.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBEF80DE22EBCBE7004B006F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		DBEF80E022EBCBE7004B006F /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -120,8 +126,28 @@
 			isa = PBXGroup;
 			children = (
 				DB4AE9AE22F54E860052AE44 /* GPXService.swift */,
+				DB618EF822F74DF20081C6E4 /* PhotosService.swift */,
 			);
 			path = Services;
+			sourceTree = "<group>";
+		};
+		DB618EFA22F7585E0081C6E4 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				DB4AE9B022F5C65B0052AE44 /* CollectionViewImageCell.swift */,
+				DB4AE9B222F5C66E0052AE44 /* CollectionViewLabelCell.swift */,
+				DB618EFB22F758700081C6E4 /* ARMapView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		DBE41F7A22FA556A0022DA00 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				DBE41F7B22FA55830022DA00 /* CLLocationCoordinate2D.swift */,
+				DB4AE9AB22F54CE20052AE44 /* Notifications.swift */,
+			);
+			path = Extensions;
 			sourceTree = "<group>";
 		};
 		DBEF80D222EBCBE7004B006F = {
@@ -149,6 +175,8 @@
 		DBEF80DD22EBCBE7004B006F /* GPX */ = {
 			isa = PBXGroup;
 			children = (
+				DBE41F7A22FA556A0022DA00 /* Extensions */,
+				DB618EFA22F7585E0081C6E4 /* Views */,
 				DB4AE9AD22F54E6B0052AE44 /* Services */,
 				DBEF810C22EBD13F004B006F /* track.gpx */,
 				DBCBD7F122EC0B5600406535 /* track2.gpx */,
@@ -158,9 +186,6 @@
 				DBEF80E522EBCBE8004B006F /* Assets.xcassets */,
 				DBEF80E722EBCBE8004B006F /* LaunchScreen.storyboard */,
 				DBEF80EA22EBCBE8004B006F /* Info.plist */,
-				DB4AE9AB22F54CE20052AE44 /* Notifications.swift */,
-				DB4AE9B022F5C65B0052AE44 /* CollectionViewImageCell.swift */,
-				DB4AE9B222F5C66E0052AE44 /* CollectionViewLabelCell.swift */,
 				DB4AE9B422F5CBC00052AE44 /* HighlightButton.swift */,
 			);
 			path = GPX;
@@ -206,6 +231,7 @@
 				DBEF80D822EBCBE7004B006F /* Frameworks */,
 				DBEF80D922EBCBE7004B006F /* Resources */,
 				3FBA208CE6A74A7DB9C00B21 /* [CP] Embed Pods Frameworks */,
+				DB618EF722F697DD0081C6E4 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -388,6 +414,24 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
+		DB618EF722F697DD0081C6E4 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)",
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Look for a global file named 'mapbox' or '.mapbox' within the home directory\ntoken_file=~/.mapbox\ntoken_file2=~/mapbox\ntoken=\"$(cat $token_file 2>/dev/null || cat $token_file2 2>/dev/null)\"\nif [ \"$token\" ]; then\nplutil -replace MGLMapboxAccessToken -string $token \"$TARGET_BUILD_DIR/$INFOPLIST_PATH\"\nelse\necho 'warning: Missing Mapbox access token'\nopen 'https://www.mapbox.com/account/access-tokens/'\necho \"warning: Get an access token from <https://www.mapbox.com/account/access-tokens/>, then create a new file at $token_file or $token_file2 that contains the access token.\"\nfi\n";
+		};
 		E0713F624B902B3307E36640 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -418,9 +462,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				DB4AE9AC22F54CE20052AE44 /* Notifications.swift in Sources */,
+				DB618EFC22F758700081C6E4 /* ARMapView.swift in Sources */,
 				DB4AE9B322F5C66E0052AE44 /* CollectionViewLabelCell.swift in Sources */,
 				DB4AE9B522F5CBC00052AE44 /* HighlightButton.swift in Sources */,
 				DBEF80E122EBCBE7004B006F /* ViewController.swift in Sources */,
+				DBE41F7C22FA55830022DA00 /* CLLocationCoordinate2D.swift in Sources */,
+				DB618EF922F74DF20081C6E4 /* PhotosService.swift in Sources */,
 				DBEF80DF22EBCBE7004B006F /* AppDelegate.swift in Sources */,
 				DB4AE9AF22F54E860052AE44 /* GPXService.swift in Sources */,
 				DB4AE9B122F5C65B0052AE44 /* CollectionViewImageCell.swift in Sources */,

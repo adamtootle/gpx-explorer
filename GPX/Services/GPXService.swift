@@ -10,48 +10,75 @@ import Foundation
 import MapKit
 import SWXMLHash
 
+struct GPXServiceResponse {
+    let startDate: Date?
+    let endDate: Date?
+    let locations: [[CLLocation]]?
+    
+    func createPolylines() -> [MKPolyline] {
+        var polylines: [MKPolyline] = []
+        
+        if let locations = self.locations {
+            for locationsArray in locations {
+                var mapPoints: [MKMapPoint] = []
+                
+                for location in locationsArray {
+                    let mapPoint = MKMapPoint(location.coordinate)
+                    mapPoints.append(mapPoint)
+                }
+                
+                let polyline = MKPolyline(points: &mapPoints, count: mapPoints.count)
+                polylines.append(polyline)
+            }
+        }
+        
+        return polylines
+    }
+}
+
 class GPXService {
-    static func processGPX(path: String) -> (startDate: Date?, endDate: Date?, polylines: [MKPolyline]) {
-        var places: [MKMapPoint] = []
+    static func processGPX(path: String) -> GPXServiceResponse {
+        var locations: [[CLLocation]] = []
         var startDate: Date?
         var endDate: Date?
+        
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
         dateFormatter.timeZone = TimeZone(abbreviation: "UTC")
-        if let filepath = Bundle.main.path(forResource: "track", ofType: "gpx") {
-            do {
-                let contents = try String(contentsOfFile: path)
-                let xml = SWXMLHash.parse(contents)
-                xml["gpx"]["trk"]["trkseg"].all.forEach { (trkseg) in
-                    trkseg["trkpt"].all.forEach({ (trkpt) in
-                        if let latText = trkpt.element?.attribute(by: "lat")?.text,
-                            let lonText = trkpt.element?.attribute(by: "lon")?.text,
-                            let timeText = trkpt["time"].element?.text {
-                            let lat = Double(latText)!
-                            let lon = Double(lonText)!
-                            places.append(MKMapPoint(CLLocationCoordinate2D(latitude: lat, longitude: lon)))
-                            
-                            let time = dateFormatter.date(from: timeText)!
-                            
-                            if startDate == nil {
-                                startDate = time
-                            }
-                            
-                            endDate = time
+        
+        do {
+            let contents = try String(contentsOfFile: path)
+            let xml = SWXMLHash.parse(contents)
+            xml["gpx"]["trk"]["trkseg"].all.forEach { (trkseg) in
+                var trackLocations: [CLLocation] = []
+                
+                trkseg["trkpt"].all.forEach({ (trkpt) in
+                    if let latText = trkpt.element?.attribute(by: "lat")?.text,
+                        let lonText = trkpt.element?.attribute(by: "lon")?.text,
+                        let timeText = trkpt["time"].element?.text,
+                        let elevationText = trkpt["ele"].element?.text{
+                        let latitude = Double(latText)!
+                        let longitude = Double(lonText)!
+                        let elevation = Double(elevationText)!
+                        let time = dateFormatter.date(from: timeText)!
+                        let location = CLLocation(coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude), altitude: elevation, horizontalAccuracy: 0, verticalAccuracy: 0, timestamp: time)
+                        trackLocations.append(location)
+                        
+                        if startDate == nil {
+                            startDate = time
                         }
                         
-                    })
-                }
-            } catch {
-                // contents could not be loaded
+                        endDate = time
+                    }
+                    
+                })
+                
+                locations.append(trackLocations)
             }
-        } else {
-            // example.txt not found!
+        } catch {
+            // contents could not be loaded
         }
         
-        var locations = places.map { $0.coordinate }
-        let polyline = MKPolyline(coordinates: &locations, count: locations.count)
-        
-        return (startDate: startDate, endDate: endDate, polylines: [polyline])
+        return GPXServiceResponse(startDate: startDate, endDate: endDate, locations: locations)
     }
 }

@@ -8,6 +8,9 @@ target 'GPX' do
   # Pods for GPX
 
   pod 'SWXMLHash', '~> 4.9.0'
+  pod 'Mapbox-iOS-SDK', '~> 5.2'
+  pod 'MapboxSceneKit', :git => 'https://github.com/mapbox/mapbox-scenekit.git'
+  pod 'MapboxMobileEvents'
 
   target 'GPXTests' do
     inherit! :search_paths

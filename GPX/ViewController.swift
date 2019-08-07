@@ -10,6 +10,7 @@ import UIKit
 import Photos
 import MapKit
 import MobileCoreServices
+import Mapbox
 
 extension MKMapView {
     var zoomLevel: Double {
@@ -17,14 +18,16 @@ extension MKMapView {
     }
 }
 
-class ViewController: UIViewController, MKMapViewDelegate, UIGestureRecognizerDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UIDocumentPickerDelegate {
+class ViewController: UIViewController, MKMapViewDelegate, UIGestureRecognizerDelegate, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout, UIDocumentPickerDelegate, MGLMapViewDelegate {
     @IBOutlet var mapView: MKMapView!
+    @IBOutlet var mglMapView: MGLMapView!
     @IBOutlet var collectionView: UICollectionView!
     @IBOutlet var containerView: UIView!
     @IBOutlet var containerInnerView: UIView!
     @IBOutlet var buttonsView: UIView!
     @IBOutlet var photosView: UIView!
     @IBOutlet var openFileView: UIView!
+    @IBOutlet var arMapView: ARMapView!
     @IBOutlet var dragView: UIView!
     @IBOutlet var dragViewMarker: UIView!
     
@@ -41,6 +44,8 @@ class ViewController: UIViewController, MKMapViewDelegate, UIGestureRecognizerDe
     let containerViewExpandedHeight = (UIScreen.main.bounds.size.height / 2) - 15
     var containerViewCollapsedY: CGFloat = 0
     let containerViewExpandedY: CGFloat = UIScreen.main.bounds.size.height / 2
+    
+    var gpxResponse: GPXServiceResponse?
     
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -74,6 +79,8 @@ class ViewController: UIViewController, MKMapViewDelegate, UIGestureRecognizerDe
         self.photosView.clipsToBounds = true
         
         self.dragViewMarker.layer.cornerRadius = self.dragViewMarker.bounds.size.height / 2
+        
+        self.mglMapView.styleURL = URL(string: "mapbox://styles/adamtootle/cjyzd3ygk0c491cmo0309nr1p")!
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -85,9 +92,9 @@ class ViewController: UIViewController, MKMapViewDelegate, UIGestureRecognizerDe
     @objc func openGPX(_ notification: Notification) {
         self.openFileView.alpha = 0.0
         if let url = notification.userInfo?["url"] as? URL {
-            let gpxResponse: (startDate: Date?, endDate: Date?, polylines: [MKPolyline]) = GPXService.processGPX(path: url.path)
-            self.renderPolylines(gpxResponse.polylines)
-            self.loadImages(startDate: gpxResponse.startDate, endDate: gpxResponse.endDate)
+            self.gpxResponse = GPXService.processGPX(path: url.path)
+            self.renderPolylines(self.gpxResponse!.createPolylines())
+            self.loadImages(startDate: self.gpxResponse?.startDate, endDate: self.gpxResponse?.endDate)
         }
     }
     
@@ -111,6 +118,15 @@ class ViewController: UIViewController, MKMapViewDelegate, UIGestureRecognizerDe
                 animated: true
             )
         }
+        
+        var mglPolylines: [MGLPolyline] = []
+        for locationsArray in self.gpxResponse!.locations! {
+            let polyline = MGLPolyline(coordinates: locationsArray.map{$0.coordinate}, count: UInt(locationsArray.count))
+            mglPolylines.append(polyline)
+            self.mglMapView.addAnnotation(polyline)
+        }
+        
+        self.mglMapView.showAnnotations(mglPolylines, animated: true)
     }
 }
 
@@ -178,6 +194,82 @@ extension ViewController {
                 polyline.boundingMapRect,
                 edgePadding: UIEdgeInsets(
                     top: 20,
+                    left: 100,
+                    bottom: 20,
+                    right: 100
+                ),
+                animated: true
+            )
+        }
+        
+        self.mapView.removeAnnotations(self.mapView.annotations)
+    }
+    
+    func showARMap() {
+        self.containerViewLeadingConstraint.constant = 0
+        self.containerViewTrailingConstraint.constant = 0
+        self.containerViewBottomConstraint.constant = (self.view.safeAreaInsets.bottom * -1) - 15
+        self.containerViewHeightConstraint.constant = UIScreen.main.bounds.size.height
+        
+        self.view.setNeedsUpdateConstraints()
+        
+        UIView.animate(withDuration: 0.3) {
+            self.view.layoutIfNeeded()
+            self.buttonsView.alpha = 0.0
+            self.photosView.alpha = 0.0
+            self.dragView.alpha = 0.0
+            self.arMapView.alpha = 1.0
+        }
+        
+        if let polyline = self.polyline {
+            // Weirdly, running setVisibleMapRect here normally
+            // does this weird UI lock the very first time, running
+            // as expected every time after that.
+            // Delaying it for 1 millisecond runs as expected.
+            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + .milliseconds(1)) {
+                self.mapView.setVisibleMapRect(
+                    polyline.boundingMapRect,
+                    edgePadding: UIEdgeInsets(
+                        top: 20,
+                        left: 20,
+                        bottom: self.containerViewExpandedY,
+                        right: 20
+                    ),
+                    animated: true
+                )
+            }
+        }
+        
+        self.collectionView.collectionViewLayout.invalidateLayout()
+        
+        if self.images.count == 0 {
+            self.collectionView.isScrollEnabled = false
+        } else {
+            self.collectionView.isScrollEnabled = true
+        }
+    }
+    
+    func hideARMapView() {
+        self.containerViewLeadingConstraint.constant = 25.0
+        self.containerViewTrailingConstraint.constant = 25.0
+        self.containerViewBottomConstraint.constant = 25.0
+        self.containerViewHeightConstraint.constant = self.containerViewCollapsedHeight
+        
+        self.view.setNeedsUpdateConstraints()
+        
+        UIView.animate(withDuration: 0.3) {
+            self.view.layoutIfNeeded()
+            self.buttonsView.alpha = 1.0
+            self.photosView.alpha = 0.0
+            self.dragView.alpha = 0.0
+            self.arMapView.alpha = 0.0
+        }
+        
+        if let polyline = self.polyline {
+            self.mapView.setVisibleMapRect(
+                polyline.boundingMapRect,
+                edgePadding: UIEdgeInsets(
+                    top: 20,
                     left: 20,
                     bottom: 20 + self.containerViewCollapsedHeight,
                     right: 20
@@ -205,7 +297,16 @@ extension ViewController {
     }
     
     @IBAction func didTapCameraButton() {
+        self.showARMap()
+        let coordinateBounds = self.mglMapView.visibleCoordinateBounds
         
+        if let gpxResponse = self.gpxResponse {
+            self.arMapView.renderScene(
+                northeastCoordinate: coordinateBounds.ne.locationWithBearing(bearing: .pi * 1.5, distanceMeters: 2000),
+                southwestCoordinate: coordinateBounds.sw,
+                gpxResponse: gpxResponse
+            )
+        }
     }
     
     @IBAction func didTapCloseButton() {
@@ -277,41 +378,10 @@ extension ViewController {
 extension ViewController {
     func loadImages(startDate: Date?, endDate: Date?) {
         guard let startDate = startDate, let endDate = endDate else { return }
-        
-        let imgManager = PHImageManager.default()
-        
-        let requestOptions = PHImageRequestOptions()
-//        requestOptions.synchronous = true
-//        requestOptions.networkAccessAllowed = true
-        
-        // Fetch the images between the start and end date
-        let fetchOptions = PHFetchOptions()
-        fetchOptions.predicate = NSPredicate(format: "creationDate > %@ AND creationDate < %@", startDate as CVarArg, endDate as CVarArg)
-        
-        self.images = []
-        
-        let fetchResult: PHFetchResult = PHAsset.fetchAssets(with: PHAssetMediaType.image, options: fetchOptions)
-        
-        if fetchResult.count > 0 {
-            var accountedFor = 0
-            for index in 0..<fetchResult.count {
-                let asset = fetchResult.object(at: index)
-
-                imgManager.requestImageData(for: asset, options: requestOptions) { (imageData, dataUTI, orientation, info) in
-                    accountedFor += 1
-                    
-                    if let imageData = imageData {
-                        if let image = UIImage(data: imageData) {
-                            self.images.append((image: image, asset: asset))
-                        }
-                    }
-                    
-                    if accountedFor == fetchResult.count {
-                        self.collectionView.reloadData()
-                    }
-                }
-            }
-        }
+         PhotosService.loadPhotos(startDate: startDate, endDate: endDate, completionHandler: { (images) in
+            self.images = images
+            self.collectionView.reloadData()
+        })
     }
 }
 
@@ -401,5 +471,16 @@ extension ViewController {
         if let url = urls.first {
             NotificationCenter.default.post(name: .openGPX, object: nil, userInfo: ["url":url])
         }
+    }
+}
+
+// MARK: MGLMapViewDelegate
+extension ViewController {
+    func mapView(_ mapView: MGLMapView, alphaForShapeAnnotation annotation: MGLShape) -> CGFloat {
+        return 1
+    }
+    
+    func mapView(_ mapView: MGLMapView, lineWidthForPolylineAnnotation annotation: MGLPolyline) -> CGFloat {
+        return 2
     }
 }
